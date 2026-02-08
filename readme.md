@@ -2,7 +2,7 @@
 
 - [x] CLI flags
 - [x] Markdown discovery
-- [ ] Markdown → HTML conversion
-- [ ] HTML writer
+- [x] Markdown → HTML conversion
+- [x] HTML writer
 - [ ] Error wrapping discipline
 - [ ] Unit testing

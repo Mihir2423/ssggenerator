@@ -7,6 +7,7 @@ import (
 
 	"github.com/Mihir2423/ssggenerator/internal/fs"
 	"github.com/Mihir2423/ssggenerator/internal/site"
+	"github.com/Mihir2423/ssggenerator/internal/writer"
 )
 
 func main() {
@@ -43,6 +44,15 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	writer := writer.HTMLWriter{
+		Creator: writer.OSCreator{},
+	}
+
+	err = writer.Write(pages)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	log.Printf("discovered %d markdown files\n", len(pages))
 	fmt.Println("Input:", *input)
 	fmt.Println("Output:", *output)

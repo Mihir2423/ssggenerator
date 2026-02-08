@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/Mihir2423/ssggenerator/internal/fs"
+	"github.com/Mihir2423/ssggenerator/internal/markdown"
 )
 
 type Generator struct {
@@ -32,11 +33,13 @@ func (g Generator) DiscoverPages(inputDir, outputDir string) ([]Page, error) {
 		}
 		outputName := strings.TrimSuffix(entry.Name(), ".md") + ".html"
 		outputPath := filepath.Join(outputDir, outputName)
+		html := markdown.ToHTML(content)
 
 		pages = append(pages, Page{
 			SourcePath: sourcePath,
 			OutputPath: outputPath,
 			Content:    content,
+			HTML:       html,
 		})
 
 	}
