@@ -27,11 +27,9 @@ func main() {
 
 	if !hasProvidedInput {
 		log.Fatal("You should enter the Input path of markdown file.")
-		return
 	}
 	if !hasProvidedOuput {
 		log.Fatal("You should enter the Output path of html file.")
-		return
 	}
 
 	fmt.Println("Input:", *input)

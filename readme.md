@@ -1,4 +1,4 @@
-## TODO
+# SSG Generator
 
 - [x] CLI flags
 - [ ] Config loading
