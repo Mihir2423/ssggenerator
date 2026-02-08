@@ -1,12 +1,19 @@
 package site
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
 
 	"github.com/Mihir2423/ssggenerator/internal/fs"
 	"github.com/Mihir2423/ssggenerator/internal/markdown"
+)
+
+var (
+	ErrDiscoveryFailed = errors.New("page discovery failed")
+	ErrReadInputDir    = errors.New("failed to read input directory")
+	ErrReadFile        = errors.New("failed to read file")
 )
 
 type Generator struct {
@@ -16,7 +23,7 @@ type Generator struct {
 func (g Generator) DiscoverPages(inputDir, outputDir string) ([]Page, error) {
 	entries, err := g.FS.ReadDir(inputDir)
 	if err != nil {
-		return nil, fmt.Errorf("reading input dir: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrReadInputDir, err)
 	}
 	var pages []Page
 	for _, entry := range entries {
@@ -29,7 +36,7 @@ func (g Generator) DiscoverPages(inputDir, outputDir string) ([]Page, error) {
 		sourcePath := filepath.Join(inputDir, entry.Name())
 		content, err := g.FS.ReadFile(sourcePath)
 		if err != nil {
-			return nil, fmt.Errorf("reading file %s: %w", sourcePath, err)
+			return nil, fmt.Errorf("%w %s: %w", ErrReadFile, sourcePath, err)
 		}
 		outputName := strings.TrimSuffix(entry.Name(), ".md") + ".html"
 		outputPath := filepath.Join(outputDir, outputName)

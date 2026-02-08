@@ -40,17 +40,17 @@ func main() {
 	}
 
 	pages, err := gen.DiscoverPages(*input, *output)
-
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Error discovering pages: %v", err)
 	}
+
 	writer := writer.HTMLWriter{
 		Creator: writer.OSCreator{},
 	}
 
 	err = writer.Write(pages)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Error writing HTML files: %v", err)
 	}
 
 	log.Printf("discovered %d markdown files\n", len(pages))
