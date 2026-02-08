@@ -4,12 +4,14 @@ import (
 	"flag"
 	"fmt"
 	"log"
+
+	"github.com/Mihir2423/ssggenerator/internal/fs"
+	"github.com/Mihir2423/ssggenerator/internal/site"
 )
 
 func main() {
 	input := flag.String("input", "", "Input path")
 	output := flag.String("output", "", "Output path")
-	config := flag.String("config", "", "Optional JSON configuration (e.g. '{\"key\":\"value\"}')")
 
 	flag.Parse()
 
@@ -32,7 +34,16 @@ func main() {
 		log.Fatal("You should enter the Output path of html file.")
 	}
 
+	gen := site.Generator{
+		FS: fs.OSReader{},
+	}
+
+	pages, err := gen.DiscoverPages(*input, *output)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("discovered %d markdown files\n", len(pages))
 	fmt.Println("Input:", *input)
 	fmt.Println("Output:", *output)
-	fmt.Println("Config:", *config)
 }
