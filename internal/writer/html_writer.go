@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sync"
 
 	"github.com/Mihir2423/ssggenerator/internal/site"
 )
@@ -19,21 +20,41 @@ type HTMLWriter struct {
 }
 
 func (w HTMLWriter) Write(pages []site.Page) error {
-	for _, page := range pages {
-		err := w.Creator.MkdirAll(page.OutputPath)
-		if err != nil {
-			return fmt.Errorf("%w: %w", ErrCreateOutputDir, err)
-		}
-		f, err := w.Creator.Create(page.OutputPath)
-		if err != nil {
-			return fmt.Errorf("%w %s: %w", ErrCreateFile, page.OutputPath, err)
-		}
-		_, err = io.WriteString(f, page.HTML)
-		f.Close()
-		if err != nil {
-			return fmt.Errorf("%w %s: %w", ErrWriteFile, page.OutputPath, err)
-		}
+	var wg sync.WaitGroup
+	errChan := make(chan error, len(pages))
 
+	for _, page := range pages {
+		wg.Add(1)
+		go func(p site.Page) {
+			defer wg.Done()
+
+			err := w.Creator.MkdirAll(p.OutputPath)
+			if err != nil {
+				errChan <- fmt.Errorf("%w: %w", ErrCreateOutputDir, err)
+				return
+			}
+			f, err := w.Creator.Create(p.OutputPath)
+			if err != nil {
+				errChan <- fmt.Errorf("%w %s: %w", ErrCreateFile, p.OutputPath, err)
+				return
+			}
+			_, err = io.WriteString(f, p.HTML)
+			f.Close()
+			if err != nil {
+				errChan <- fmt.Errorf("%w %s: %w", ErrWriteFile, p.OutputPath, err)
+				return
+			}
+		}(page)
 	}
+
+	wg.Wait()
+	close(errChan)
+
+	for err := range errChan {
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
