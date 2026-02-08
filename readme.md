@@ -1,9 +1,7 @@
 # SSG Generator
 
 - [x] CLI flags
-- [ ] Config loading
-- [ ] File system abstraction
-- [ ] Markdown discovery
+- [x] Markdown discovery
 - [ ] Markdown → HTML conversion
 - [ ] HTML writer
 - [ ] Error wrapping discipline
