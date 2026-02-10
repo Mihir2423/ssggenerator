@@ -1,0 +1,14 @@
+{
+  "files": {
+    "testdata/input/about.md": {
+      "hash": "1b42d02c3b6684bc9b3d1ab2336041a02288aeade10a63b55dc149930997fe5c",
+      "mod_time": "2026-02-10T14:31:29.948897+05:30",
+      "output_path": "testdata/output/about.html"
+    },
+    "testdata/input/index.md": {
+      "hash": "786858bd96e808768373ea4f968cd0cd0c4d860fafed99894b6a101a22deb8e3",
+      "mod_time": "2026-02-10T14:31:29.948894+05:30",
+      "output_path": "testdata/output/index.html"
+    }
+  }
+}

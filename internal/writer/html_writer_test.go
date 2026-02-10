@@ -6,6 +6,7 @@ import (
 	"io"
 	"testing"
 
+	"github.com/Mihir2423/ssggenerator/internal/cache"
 	"github.com/Mihir2423/ssggenerator/internal/site"
 )
 
@@ -46,17 +47,23 @@ var _ FileCreator = &fakeFileCreator{}
 
 func TestHTMLWriter_Write_Success(t *testing.T) {
 	creator := &fakeFileCreator{}
-	writer := HTMLWriter{Creator: creator}
-
-	pages := []site.Page{
-		{
-			SourcePath: "/input/index.md",
-			OutputPath: "/output/index.html",
-			HTML:       "<h1>Home</h1>",
-		},
+	writer := HTMLWriter{
+		Creator: creator,
+		Cache:   cache.New("/tmp/cache"),
 	}
 
-	err := writer.Write(pages)
+	result := &site.BuildResult{
+		ChangedPages: []site.Page{
+			{
+				SourcePath: "/input/index.md",
+				OutputPath: "/output/index.html",
+				HTML:       "<h1>Home</h1>",
+			},
+		},
+		UnchangedFiles: []site.UnchangedFile{},
+	}
+
+	err := writer.Write(result)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -70,17 +77,57 @@ func TestHTMLWriter_Write_MkdirError(t *testing.T) {
 	creator := &fakeFileCreator{
 		mkErr: errors.New("permission denied"),
 	}
-	writer := HTMLWriter{Creator: creator}
+	writer := HTMLWriter{
+		Creator: creator,
+		Cache:   cache.New("/tmp/cache"),
+	}
 
-	pages := []site.Page{
-		{
-			OutputPath: "/output/index.html",
-			HTML:       "<h1>Home</h1>",
+	result := &site.BuildResult{
+		ChangedPages: []site.Page{
+			{
+				OutputPath: "/output/index.html",
+				HTML:       "<h1>Home</h1>",
+			},
+		},
+		UnchangedFiles: []site.UnchangedFile{},
+	}
+
+	err := writer.Write(result)
+	if err == nil {
+		t.Error("expected error but got nil")
+	}
+}
+
+func TestHTMLWriter_Write_WithUnchangedFiles(t *testing.T) {
+	creator := &fakeFileCreator{}
+	writer := HTMLWriter{
+		Creator: creator,
+		Cache:   nil,
+	}
+
+	result := &site.BuildResult{
+		ChangedPages: []site.Page{
+			{
+				SourcePath: "/input/index.md",
+				OutputPath: "/output/index.html",
+				HTML:       "<h1>Home</h1>",
+			},
+		},
+		UnchangedFiles: []site.UnchangedFile{
+			{
+				SourcePath: "/input/about.md",
+				OutputPath: "/output/about.html",
+			},
 		},
 	}
 
-	err := writer.Write(pages)
-	if err == nil {
-		t.Error("expected error but got nil")
+	err := writer.Write(result)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	// Changed file should be written
+	if creator.files["/output/index.html"] == nil {
+		t.Error("expected changed file to be created")
 	}
 }

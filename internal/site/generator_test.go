@@ -5,6 +5,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/Mihir2423/ssggenerator/internal/buildstate"
+	"github.com/Mihir2423/ssggenerator/internal/cache"
 	"github.com/Mihir2423/ssggenerator/internal/fs"
 )
 
@@ -40,7 +42,7 @@ func (f fakeReader) ReadDir(path string) ([]os.DirEntry, error) {
 
 var _ fs.Reader = fakeReader{}
 
-func TestDiscoverPages_Success(t *testing.T) {
+func TestDiscoverAndClassify_Success(t *testing.T) {
 	reader := fakeReader{
 		entries: []os.DirEntry{
 			fakeDirEntry{name: "index.md", isDir: false},
@@ -52,26 +54,74 @@ func TestDiscoverPages_Success(t *testing.T) {
 		},
 	}
 
-	gen := Generator{FS: reader}
-	pages, err := gen.DiscoverPages("/input", "/output")
+	state := buildstate.New()
+	gen := Generator{
+		FS:         reader,
+		BuildState: state,
+		Cache:      cache.New("/tmp/cache"),
+	}
+
+	result, err := gen.DiscoverAndClassify("/input", "/output")
 
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if len(pages) != 2 {
-		t.Errorf("expected 2 pages, got %d", len(pages))
+	if len(result.ChangedPages) != 2 {
+		t.Errorf("expected 2 changed pages, got %d", len(result.ChangedPages))
+	}
+	if len(result.UnchangedFiles) != 0 {
+		t.Errorf("expected 0 unchanged files, got %d", len(result.UnchangedFiles))
 	}
 }
 
-func TestDiscoverPages_ReadDirError(t *testing.T) {
+func TestDiscoverAndClassify_ReadDirError(t *testing.T) {
 	reader := fakeReader{
 		err: errors.New("permission denied"),
 	}
 
-	gen := Generator{FS: reader}
-	_, err := gen.DiscoverPages("/input", "/output")
+	gen := Generator{
+		FS:         reader,
+		BuildState: buildstate.New(),
+		Cache:      cache.New("/tmp/cache"),
+	}
+
+	_, err := gen.DiscoverAndClassify("/input", "/output")
 
 	if err == nil {
 		t.Error("expected error but got nil")
+	}
+}
+
+func TestDiscoverAndClassify_IncrementalBuild(t *testing.T) {
+	reader := fakeReader{
+		entries: []os.DirEntry{
+			fakeDirEntry{name: "index.md", isDir: false},
+			fakeDirEntry{name: "about.md", isDir: false},
+		},
+		files: map[string][]byte{
+			"/input/index.md": []byte("# Home"),
+			"/input/about.md": []byte("## About"),
+		},
+	}
+
+	state := buildstate.New()
+	state.Update("/input/index.md", []byte("# Home"), "/output/index.html")
+
+	gen := Generator{
+		FS:         reader,
+		BuildState: state,
+		Cache:      cache.New("/tmp/cache"),
+	}
+
+	result, err := gen.DiscoverAndClassify("/input", "/output")
+
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if len(result.ChangedPages) != 1 {
+		t.Errorf("expected 1 changed page, got %d", len(result.ChangedPages))
+	}
+	if len(result.UnchangedFiles) != 1 {
+		t.Errorf("expected 1 unchanged file, got %d", len(result.UnchangedFiles))
 	}
 }

@@ -4,7 +4,10 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"path/filepath"
 
+	"github.com/Mihir2423/ssggenerator/internal/buildstate"
+	"github.com/Mihir2423/ssggenerator/internal/cache"
 	"github.com/Mihir2423/ssggenerator/internal/fs"
 	"github.com/Mihir2423/ssggenerator/internal/site"
 	"github.com/Mihir2423/ssggenerator/internal/writer"
@@ -35,25 +38,49 @@ func main() {
 		log.Fatal("You should enter the Output path of html file.")
 	}
 
-	gen := site.Generator{
-		FS: fs.OSReader{},
+	buildStatePath := filepath.Join(*output, ".ssg", "build-state.json")
+	cacheDir := filepath.Join(*output, ".ssg", "cache")
+
+	state := buildstate.New()
+	if err := state.Load(buildStatePath); err != nil {
+		log.Printf("Warning: could not load build state: %v", err)
 	}
 
-	pages, err := gen.DiscoverPages(*input, *output)
+	cacheManager := cache.New(cacheDir)
+	if err := cacheManager.Init(); err != nil {
+		log.Fatalf("Failed to initialize cache: %v", err)
+	}
+
+	gen := site.Generator{
+		FS:         fs.OSReader{},
+		BuildState: state,
+		Cache:      cacheManager,
+	}
+
+	result, err := gen.DiscoverAndClassify(*input, *output)
 	if err != nil {
 		log.Fatalf("Error discovering pages: %v", err)
 	}
 
-	writer := writer.HTMLWriter{
+	htmlWriter := writer.HTMLWriter{
 		Creator: writer.OSCreator{},
+		Cache:   cacheManager,
 	}
 
-	err = writer.Write(pages)
+	err = htmlWriter.Write(result)
 	if err != nil {
 		log.Fatalf("Error writing HTML files: %v", err)
 	}
 
-	log.Printf("discovered %d markdown files\n", len(pages))
+	gen.UpdateBuildState(result)
+
+	if err := state.Save(buildStatePath); err != nil {
+		log.Printf("Warning: failed to save build state: %v", err)
+	}
+
+	totalFiles := len(result.ChangedPages) + len(result.UnchangedFiles)
+	log.Printf("Processed %d markdown files (%d changed, %d cached)\n",
+		totalFiles, len(result.ChangedPages), len(result.UnchangedFiles))
 	fmt.Println("Input:", *input)
 	fmt.Println("Output:", *output)
 }
